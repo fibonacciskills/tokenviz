@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Prompt, Three Machines</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,620&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #F3F3EF;
+  --raised: #FCFCFA;
+  --ink: #20262E;
+  --ink-soft: #5C6672;
+  --line: #DEDDD4;
+  --accent: #0E7A5F;
+  --accent-ink: #0A5C48;
+  --accent-soft: #E2F0EA;
+  --code-tint: rgba(32, 38, 46, 0.055);
+  --c1: #3D6FE0; --c2: #0E7A5F; --c3: #8A4FD3; --c4: #C0722A; --c5: #C2456B;
+  --shadow: 0 1px 2px rgba(20, 26, 34, 0.06), 0 8px 28px rgba(20, 26, 34, 0.07);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F131A;
+    --raised: #171D26;
+    --ink: #E9ECEF;
+    --ink-soft: #97A1AF;
+    --line: #2A323E;
+    --accent: #41CFA0;
+    --accent-ink: #5ADCB2;
+    --accent-soft: #123028;
+    --code-tint: rgba(233, 236, 239, 0.07);
+    --c1: #6E9DF2; --c2: #41CFA0; --c3: #B07EEA; --c4: #E2A35C; --c5: #E37C9E;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F131A;
+  --raised: #171D26;
+  --ink: #E9ECEF;
+  --ink-soft: #97A1AF;
+  --line: #2A323E;
+  --accent: #41CFA0;
+  --accent-ink: #5ADCB2;
+  --accent-soft: #123028;
+  --code-tint: rgba(233, 236, 239, 0.07);
+  --c1: #6E9DF2; --c2: #41CFA0; --c3: #B07EEA; --c4: #E2A35C; --c5: #E37C9E;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15.5px/1.65 "IBM Plex Sans", -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: "Fraunces", Georgia, serif; font-weight: 620; text-wrap: balance; }
+a { color: var(--accent-ink); }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+/* ---------- nav ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 20px;
+  padding: 10px 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .brand { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; letter-spacing: 0.04em; font-weight: 500; }
+.topbar .brand b { color: var(--accent-ink); font-weight: 500; }
+.topbar nav { margin-left: auto; display: flex; gap: 4px; }
+.topbar nav a {
+  text-decoration: none; color: var(--ink-soft);
+  font: 500 12.5px/1 "IBM Plex Mono", monospace;
+  padding: 7px 10px; border-radius: 6px;
+}
+.topbar nav a:hover { color: var(--ink); background: var(--code-tint); }
+
+/* ---------- shell ---------- */
+.page { max-width: 940px; margin: 0 auto; padding: 0 24px 96px; }
+section { padding-top: 72px; }
+.kicker {
+  font: 500 11.5px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent-ink); margin-bottom: 12px;
+}
+.lede { color: var(--ink-soft); max-width: 62ch; }
+p + p { margin-top: 12px; }
+
+/* ---------- hero ---------- */
+.hero { padding-top: 64px; }
+.hero h1 { font-size: clamp(2.3rem, 5.5vw, 3.3rem); line-height: 1.08; letter-spacing: -0.01em; }
+.hero h1 em { font-style: normal; color: var(--accent-ink); }
+.hero .lede { margin-top: 14px; font-size: 17px; }
+
+.console {
+  margin-top: 36px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.console-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--line);
+  font: 500 11.5px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);
+}
+.console-head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.console-head .count { margin-left: auto; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.console-head .count b { color: var(--accent-ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.console-body { padding: 18px 16px 16px; }
+.console input {
+  width: 100%; padding: 12px 14px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  color: var(--ink); font: 400 15px/1.4 "IBM Plex Mono", monospace;
+}
+.console input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.presets button {
+  border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+  font: 400 12.5px/1 "IBM Plex Mono", monospace;
+  padding: 7px 11px; border-radius: 999px;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.presets button:hover { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
+.tokenstrip {
+  margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line);
+  display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; align-content: flex-start;
+}
+.tok {
+  font: 500 13px/1 "IBM Plex Mono", monospace;
+  padding: 6px 8px; border-radius: 6px;
+  border: 1px solid transparent;
+  animation: pop .18s ease-out both;
+}
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tok { animation: none; } }
+.tok.c0 { color: var(--c1); background: color-mix(in srgb, var(--c1) 13%, transparent); border-color: color-mix(in srgb, var(--c1) 30%, transparent); }
+.tok.c1 { color: var(--c2); background: color-mix(in srgb, var(--c2) 13%, transparent); border-color: color-mix(in srgb, var(--c2) 30%, transparent); }
+.tok.c2 { color: var(--c3); background: color-mix(in srgb, var(--c3) 13%, transparent); border-color: color-mix(in srgb, var(--c3) 30%, transparent); }
+.tok.c3 { color: var(--c4); background: color-mix(in srgb, var(--c4) 13%, transparent); border-color: color-mix(in srgb, var(--c4) 30%, transparent); }
+.tok.c4 { color: var(--c5); background: color-mix(in srgb, var(--c5) 13%, transparent); border-color: color-mix(in srgb, var(--c5) 30%, transparent); }
+.tok.gen { box-shadow: 0 0 0 1px var(--accent-ink) inset; }
+.console-note { margin-top: 14px; font-size: 12.5px; color: var(--ink-soft); }
+.console-note code { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; background: var(--code-tint); padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- recipe flow ---------- */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; overflow-x: auto; padding: 8px 2px 14px; }
+.flow .node {
+  flex: 1 1 0; min-width: 108px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--raised); padding: 12px 10px;
+  text-align: center;
+}
+.flow .node .n-t { font: 600 13px/1.3 "IBM Plex Sans", sans-serif; }
+.flow .node .n-s { font: 400 11px/1.5 "IBM Plex Mono", monospace; color: var(--ink-soft); margin-top: 5px; }
+.flow .node.hl { border-color: var(--accent); background: var(--accent-soft); }
+.flow .arrow {
+  flex: none; align-self: center; width: 34px; text-align: center;
+  color: var(--ink-soft); font: 500 14px/1 "IBM Plex Mono", monospace;
+}
+.flow-caption { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+
+/* ---------- modality sections ---------- */
+.mod-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.mod-head h2 { font-size: 1.9rem; }
+.mod-tag {
+  font: 500 11.5px/1 "IBM Plex Mono", monospace; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px;
+}
+.defn {
+  margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+}
+.defn > div { background: var(--raised); padding: 16px 18px; }
+.defn .d-k { font: 500 11px/1 "IBM Plex Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 7px; }
+.defn .d-v { font-size: 14.5px; line-height: 1.6; }
+.defn .d-v code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; background: var(--code-tint); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 640px) { .defn { grid-template-columns: 1fr; } }
+
+.viz {
+  margin-top: 22px;
+  background: var(--raised); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.viz-bar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  font: 500 11.5px/1 "IBM Plex Mono", monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);
+}
+.viz-bar .status { margin-left: auto; text-transform: none; letter-spacing: 0; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.viz button.replay {
+  border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+  font: 500 11px/1 "IBM Plex Mono", monospace; padding: 5px 9px; border-radius: 6px;
+}
+.viz button.replay:hover { color: var(--accent-ink); border-color: var(--accent); }
+.viz canvas { display: block; width: 100%; height: auto; }
+.viz-pad { padding: 18px 16px; }
+
+/* text sim */
+.ctxline { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.ctxline .lbl { font: 500 10.5px/1 "IBM Plex Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-right: 6px; }
+.outline { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.cand { display: grid; grid-template-columns: 84px 1fr 48px; gap: 10px; align-items: center; margin-top: 7px; }
+.cand .cw { font: 500 13px/1 "IBM Plex Mono", monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cand .cw.win { color: var(--accent-ink); }
+.cand .bar { height: 9px; border-radius: 3px; background: var(--code-tint); overflow: hidden; }
+.cand .bar i { display: block; height: 100%; background: var(--ink-soft); border-radius: 3px; transition: width .3s ease; }
+.cand.win .bar i { background: var(--accent); }
+.cand .pc { font: 400 12px/1 "IBM Plex Mono", monospace; color: var(--ink-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.cand.win .pc { color: var(--accent-ink); }
+@media (max-width: 520px) { .cand { grid-template-columns: 64px 1fr 40px; } }
+.viz-note { margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
+
+/* model shelf */
+.shelf { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .shelf { grid-template-columns: 1fr; } }
+.shelf .card { border: 1px solid var(--line); border-radius: 10px; background: var(--raised); padding: 15px 17px; }
+.shelf .card.open { border-left: 3px solid var(--accent); }
+.shelf .card .s-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.shelf .card .s-h b { font: 600 13.5px/1 "IBM Plex Sans", sans-serif; }
+.shelf .card .s-h span { font: 400 11px/1 "IBM Plex Mono", monospace; color: var(--ink-soft); }
+.shelf ul { list-style: none; }
+.shelf li { display: flex; align-items: baseline; gap: 8px; padding: 4.5px 0; font-size: 13.5px; }
+.shelf li .m { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-weight: 500; }
+.shelf li .who { color: var(--ink-soft); font-size: 12px; }
+.shelf li .lic {
+  margin-left: auto; flex: none;
+  font: 500 10px/1 "IBM Plex Mono", monospace; letter-spacing: 0.04em;
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 7px; color: var(--ink-soft);
+}
+.shelf .card.open li .lic { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent-ink); }
+
+/* ---------- ledger ---------- */
+.tablewrap { margin-top: 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; min-width: 780px; font-variant-numeric: tabular-nums; }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 13.5px; }
+thead th { font: 600 12px/1.3 "IBM Plex Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 2px solid var(--line); }
+tbody th { font: 500 12px/1.5 "IBM Plex Mono", monospace; color: var(--ink-soft); white-space: nowrap; }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
+td b { font-weight: 600; }
+td .mono, tbody .mono { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; }
+td .open { color: var(--accent-ink); }
+tr.hl-row td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+.takeaways { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 720px) { .takeaways { grid-template-columns: 1fr; } }
+.takeaways .tk { border: 1px solid var(--line); border-radius: 10px; background: var(--raised); padding: 16px 18px; }
+.takeaways .tk b { display: block; font-family: "Fraunces", Georgia, serif; font-size: 16.5px; font-weight: 620; margin-bottom: 6px; }
+.takeaways .tk p { font-size: 13.5px; color: var(--ink-soft); }
+
+footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 12.5px; }
+footer p + p { margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <span class="brand">token<b>viz</b> · one prompt, three machines</span>
+  <nav aria-label="Sections">
+    <a href="#recipe">recipe</a>
+    <a href="#text">text</a>
+    <a href="#image">image</a>
+    <a href="#video">video</a>
+    <a href="#ledger">ledger</a>
+  </nav>
+</nav>
+
+<main class="page">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <p class="kicker">How generation actually works</p>
+    <h1>One prompt, <em>three machines.</em></h1>
+    <p class="lede">The same sentence can become words, pixels, or motion — because inside every generative model it&rsquo;s the same currency: <strong>tokens</strong>. Type a prompt below and watch it get chopped up. Everything on this page runs in your browser, the open-model way: no API call, nothing leaves your machine.</p>
+
+    <div class="console">
+      <div class="console-head">
+        <span class="dot"></span>
+        <span>tokenize</span>
+        <span class="count" id="tokcount"><b>0</b> tokens · approx.</span>
+      </div>
+      <div class="console-body">
+        <label class="sr" for="prompt" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Prompt</label>
+        <input id="prompt" type="text" value="A lighthouse beams across a stormy sea at night." spellcheck="false" autocomplete="off">
+        <div class="presets" id="presets"></div>
+        <div class="tokenstrip" id="tokenstrip" aria-live="polite"></div>
+        <p class="console-note">Simplified tokenizer, for illustration — real ones like Llama&nbsp;3&rsquo;s use <strong>128,000 learned BPE merges</strong>, and a token is roughly 4 characters of English. The point stands: before a model sees your words, it sees pieces like these.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ RECIPE ============ -->
+  <section id="recipe">
+    <p class="kicker">The shared recipe</p>
+    <h2>Every generative model runs the same loop.</h2>
+    <p class="lede" style="margin-top:10px">Text, image, video — the pipeline barely changes. What changes is what a <em>token</em> is, and what decodes it at the end.</p>
+    <div class="flow" style="margin-top:24px" role="img" aria-label="Pipeline: prompt, tokenize, model loop over tokens, decode to text, pixels, or frames">
+      <div class="node"><div class="n-t">Your prompt</div><div class="n-s">words</div></div>
+      <div class="arrow">→</div>
+      <div class="node hl"><div class="n-t">Tokenizer</div><div class="n-s">text → tokens</div></div>
+      <div class="arrow">→</div>
+      <div class="node hl"><div class="n-t">Model loop</div><div class="n-s">predict next token,<br>append, repeat</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="n-t">Token stream</div><div class="n-s">numbers 0…vocab</div></div>
+      <div class="arrow">→</div>
+      <div class="node"><div class="n-t">Decoder</div><div class="n-s">tokens → words /<br>pixels / frames</div></div>
+    </div>
+    <p class="flow-caption">For text, the loop is the whole show. For images and video, the loop is replaced by an iterative <strong>denoiser</strong> that refines a whole grid of tokens or latents at once — but the input and output formats are identical.</p>
+  </section>
+
+  <!-- ============ TEXT ============ -->
+  <section id="text">
+    <div class="mod-head">
+      <h2>Text: a token is a chunk of words.</h2>
+      <span class="mod-tag">autoregressive · 1 token ≈ 4 chars</span>
+    </div>
+    <p class="lede" style="margin-top:10px">A language model has one job, repeated thousands of times: given the tokens so far, output a probability for every token in the vocabulary — then pick one, append it, and go again. That&rsquo;s why text streams out word-ish-piece at a time.</p>
+
+    <div class="defn">
+      <div><div class="d-k">The token</div><div class="d-v">A sub-word fragment from a fixed vocabulary (Llama&nbsp;3: <code>128k</code> entries; Qwen: <code>~152k</code>). Common words are one token; rare words get split: <code>lighthouse</code> → <code>light</code> + <code>house</code>.</div></div>
+      <div><div class="d-k">The loop</div><div class="d-v">Each step reads the <em>entire</em> context and emits one token. Sampling settings — temperature, top-p — decide how adventurous the pick is. The context grows by one token per step.</div></div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-bar">
+        <span>next-token prediction · live</span>
+        <span class="status" id="text-status">waiting…</span>
+        <button class="replay" id="text-replay" type="button">replay</button>
+      </div>
+      <div class="viz-pad">
+        <div class="ctxline" id="ctxline"><span class="lbl">context</span></div>
+        <div class="outline">
+          <div class="ctxline" id="outline-line"><span class="lbl">generated</span></div>
+          <div id="cands" style="margin-top:12px"></div>
+        </div>
+        <p class="viz-note">A scripted top-5 trace of the real mechanism: the softmax over the vocabulary is squashed to five bars. The highlighted pick gets appended to the context and the whole thing runs again. This is why text models bill <em>per token</em> — each one is a full forward pass through the network.</p>
+      </div>
+    </div>
+
+    <div class="shelf">
+      <div class="card open">
+        <div class="s-h"><b>Open weights</b><span>you can download, inspect, and run these</span></div>
+        <ul>
+          <li><span class="m">Llama 3.3 70B</span><span class="who">Meta</span><span class="lic">Llama license</span></li>
+          <li><span class="m">Qwen 2.5</span><span class="who">Alibaba</span><span class="lic">Apache-2.0</span></li>
+          <li><span class="m">DeepSeek-V3</span><span class="who">DeepSeek</span><span class="lic">MIT</span></li>
+          <li><span class="m">Mistral Small 3</span><span class="who">Mistral</span><span class="lic">Apache-2.0</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="s-h"><b>Commercial</b><span>metered APIs, weights never leave the vault</span></div>
+        <ul>
+          <li><span class="m">GPT-4o</span><span class="who">OpenAI</span><span class="lic">API</span></li>
+          <li><span class="m">Claude</span><span class="who">Anthropic</span><span class="lic">API</span></li>
+          <li><span class="m">Gemini</span><span class="who">Google</span><span class="lic">API</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ IMAGE ============ -->
+  <section id="image">
+    <div class="mod-head">
+      <h2>Image: a token is a patch of meaning.</h2>
+      <span class="mod-tag">diffusion · whole grid at once</span>
+    </div>
+    <p class="lede" style="margin-top:10px">An image model doesn&rsquo;t write one pixel at a time. It starts with a grid of pure noise — latents — and scrubs noise out of <em>every cell simultaneously</em> across a few dozen steps, guided by the encoded prompt. Watch the two halves below: the latent grid settling on the left, the decode emerging on the right.</p>
+
+    <div class="defn">
+      <div><div class="d-k">The token</div><div class="d-v">A <strong>latent patch</strong> — a compressed spatial cell. A 1024×1024 image at 8× compression is a <code>128 × 128</code> grid: ~16k patches. Some models (Emu3, Janus, Chameleon) go further and quantize patches into discrete tokens, making images truly part of the vocabulary.</div></div>
+      <div><div class="d-k">The loop</div><div class="d-v">No next-token loop: a <strong>denoiser</strong> predicts the noise in all patches at once, subtracts a slice of it, and repeats — FLUX.1 [dev] runs about 28 steps. The prompt enters as text-encoder embeddings that steer every step.</div></div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-bar">
+        <span>denoising · live</span>
+        <span class="status" id="img-status">waiting…</span>
+        <button class="replay" id="img-replay" type="button">replay</button>
+      </div>
+      <canvas id="imgcanvas" width="900" height="400" aria-label="Animation of a latent grid denoising into a decoded lighthouse image"></canvas>
+    </div>
+
+    <div class="shelf">
+      <div class="card open">
+        <div class="s-h"><b>Open weights</b><span>the reason local image generation exists</span></div>
+        <ul>
+          <li><span class="m">FLUX.1 [dev]</span><span class="who">Black Forest Labs</span><span class="lic">non-commercial</span></li>
+          <li><span class="m">Stable Diffusion 3.5</span><span class="who">Stability AI</span><span class="lic">community</span></li>
+          <li><span class="m">SDXL</span><span class="who">Stability AI</span><span class="lic">OpenRAIL</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="s-h"><b>Commercial</b><span>priced per image, tuned per product</span></div>
+        <ul>
+          <li><span class="m">DALL·E 3</span><span class="who">OpenAI</span><span class="lic">API</span></li>
+          <li><span class="m">Midjourney</span><span class="who">Midjourney</span><span class="lic">subscription</span></li>
+          <li><span class="m">Imagen 4</span><span class="who">Google</span><span class="lic">API</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIDEO ============ -->
+  <section id="video">
+    <div class="mod-head">
+      <h2>Video: a token is a patch of spacetime.</h2>
+      <span class="mod-tag">3D tokens · time × height × width</span>
+    </div>
+    <p class="lede" style="margin-top:10px">A video model cuts the clip into small cubes that span <em>several frames at once</em> — so a token carries motion, not just appearance. Token counts explode: seconds of video mean hundreds of thousands of spacetime patches, which is why video came last and why it eats GPU memory for breakfast.</p>
+
+    <div class="defn">
+      <div><div class="d-k">The token</div><div class="d-v">A <strong>spacetime patch</strong>: a cube spanning a few pixels × a few pixels × a few frames. A 3D VAE compresses the clip first (HunyuanVideo), or frames are patchified directly (Sora&rsquo;s recipe). One 5-second clip ≈ hundreds of thousands of tokens.</div></div>
+      <div><div class="d-k">The loop</div><div class="d-v">Same denoising idea as images, but the noise lives in a 3D volume — so neighboring frames are generated <em>together</em>, and consistency across time is enforced by the patch shape itself. That&rsquo;s the trick that made video coherent.</div></div>
+    </div>
+
+    <div class="viz">
+      <div class="viz-bar">
+        <span>spacetime patches · live</span>
+        <span class="status" id="vid-status">t = 0 · frame 0/5</span>
+        <button class="replay" id="vid-replay" type="button">replay</button>
+      </div>
+      <canvas id="vidcanvas" width="900" height="300" aria-label="Strip of five frames, each divided into spacetime patches, with a moving playhead"></canvas>
+    </div>
+
+    <div class="shelf">
+      <div class="card open">
+        <div class="s-h"><b>Open weights</b><span>the newest frontier to open up</span></div>
+        <ul>
+          <li><span class="m">HunyuanVideo</span><span class="who">Tencent</span><span class="lic">community</span></li>
+          <li><span class="m">Mochi 1</span><span class="who">Genmo</span><span class="lic">Apache-2.0</span></li>
+          <li><span class="m">Wan 2.1</span><span class="who">Alibaba</span><span class="lic">Apache-2.0</span></li>
+          <li><span class="m">LTX-Video</span><span class="who">Lightricks</span><span class="lic">open weights</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="s-h"><b>Commercial</b><span>the current quality ceiling</span></div>
+        <ul>
+          <li><span class="m">Sora</span><span class="who">OpenAI</span><span class="lic">subscription</span></li>
+          <li><span class="m">Veo 3</span><span class="who">Google</span><span class="lic">API / subscription</span></li>
+          <li><span class="m">Kling</span><span class="who">Kuaishou</span><span class="lic">subscription</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LEDGER ============ -->
+  <section id="ledger">
+    <p class="kicker">The ledger</p>
+    <h2>Same currency, different denominations — and different meters.</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col"></th><th scope="col">Text</th><th scope="col">Image</th><th scope="col">Video</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">a token is…</th>
+            <td>a ~4-character chunk of words</td>
+            <td>a latent patch <span class="mono">(128×128 grid ≈ 16k)</span></td>
+            <td>a spacetime patch <span class="mono">(hundreds of thousands)</span></td>
+          </tr>
+          <tr>
+            <th scope="row">how it&rsquo;s made</th>
+            <td>one token at a time, autoregressive</td>
+            <td>all patches denoised together, ~20–50 steps</td>
+            <td>same, but the grid is 3D (time included)</td>
+          </tr>
+          <tr class="hl-row">
+            <th scope="row">open examples</th>
+            <td class="open mono">Llama 3.3 · Qwen 2.5 · DeepSeek-V3 · Mistral</td>
+            <td class="open mono">FLUX.1 · SD 3.5 · SDXL · Emu3 · Janus</td>
+            <td class="open mono">HunyuanVideo · Mochi 1 · Wan 2.1 · LTX</td>
+          </tr>
+          <tr>
+            <th scope="row">commercial</th>
+            <td class="mono">GPT-4o · Claude · Gemini</td>
+            <td class="mono">DALL·E 3 · Midjourney · Imagen 4</td>
+            <td class="mono">Sora · Veo 3 · Kling</td>
+          </tr>
+          <tr>
+            <th scope="row">typical cost</th>
+            <td><b>$0.15–15</b> per M tokens <span class="mono">(API)</span><br><span class="open">open: your GPU + electricity</span></td>
+            <td><b>$0.04–0.19</b> per image <span class="mono">(API)</span><br><span class="open">open: seconds on a 24GB GPU</span></td>
+            <td><b>~$0.10–0.50</b> per second <span class="mono">(est.)</span><br><span class="open">open: 24–80GB VRAM, quantizable</span></td>
+          </tr>
+          <tr>
+            <th scope="row">where it runs</th>
+            <td>8B on a laptop · 70B on one 24GB GPU (quantized)</td>
+            <td>consumer GPU, local, offline</td>
+            <td>workstation GPU, or rented by the minute</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="takeaways">
+      <div class="tk">
+        <b>Open models let you watch the machine.</b>
+        <p>Weights, tokenizer, sampling loop — all inspectable. You can count your own tokens before you run anything, run a prompt ten times to see the sampling variance, and read the license to know what you&rsquo;re allowed to build.</p>
+      </div>
+      <div class="tk">
+        <b>Commercial models meter the machine.</b>
+        <p>Every token, patch, and frame crosses a pricing endpoint. You get the frontier&rsquo;s best quality and zero ops burden — and in exchange, no view inside, no fixed cost, and your prompts live on someone else&rsquo;s server.</p>
+      </div>
+      <div class="tk">
+        <b>The token is the unit of trust.</b>
+        <p>Whoever holds the weights holds the meter. Open models move generation to where your data already lives — a laptop, a lab, an air-gapped box — which is exactly why local-first tooling keeps choosing open models.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Built as a visual companion to a blog post on open vs. commercial generative systems. Token counts, prices, and step counts are approximate, illustrated figures — the mechanisms are the real story.</p>
+    <p>The tokenizer on this page is a simplified browser-side stand-in for real BPE tokenizers; the canvas simulations are stylized, not model outputs.</p>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- theme handling ---------------- */
+  var darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  function isDark() {
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "dark") return true;
+    if (t === "light") return false;
+    return darkQuery.matches;
+  }
+  var P = {
+    light: {
+      bg: "#F3F3EF", raised: "#FCFCFA", ink: "#20262E", soft: "#5C6672", line: "#DEDDD4",
+      accent: "#0E7A5F", accentSoft: "#E2F0EA", noise: "#D6D7D1", noise2: "#C4C6C2"
+    },
+    dark: {
+      bg: "#0F131A", raised: "#171D26", ink: "#E9ECEF", soft: "#97A1AF", line: "#2A323E",
+      accent: "#41CFA0", accentSoft: "#123028", noise: "#1D232C", noise2: "#272E39"
+    }
+  };
+  function pal() { return isDark() ? P.dark : P.light; }
+
+  /* ---------------- tokenizer ---------------- */
+  function hash(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+  function tokenize(text) {
+    var out = [];
+    var words = text.match(/[A-Za-z]+[']?[A-Za-z]*|[0-9]+|[^\sA-Za-z0-9]/g) || [];
+    words.forEach(function (w) {
+      if (w.length <= 6) { push(w); return; }
+      var h = hash(w), i = 0;
+      while (i < w.length) {
+        var size = 3 + ((h >> (i % 8)) % 3); // 3–5 chars, deterministic
+        if (w.length - i <= 6) size = w.length - i;
+        push(w.slice(i, i + size));
+        i += size;
+      }
+    });
+    function push(piece) {
+      if (!piece) return;
+      push.n = (push.n || 0) + 1;
+      out.push({ t: piece, c: hash(piece + push.n) % 5 });
+    }
+    return out;
+  }
+
+  var input = document.getElementById("prompt");
+  var strip = document.getElementById("tokenstrip");
+  var countEl = document.getElementById("tokcount");
+  var presetsEl = document.getElementById("presets");
+
+  var PRESETS = [
+    "A lighthouse beams across a stormy sea at night.",
+    "The robot learned to paint like Van Gogh.",
+    "Small models dream in large contexts."
+  ];
+  PRESETS.forEach(function (p) {
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = p.length > 34 ? p.slice(0, 32) + "…" : p;
+    b.title = p;
+    b.addEventListener("click", function () {
+      input.value = p; onPrompt();
+      input.focus();
+    });
+    presetsEl.appendChild(b);
+  });
+
+  var currentTokens = [];
+  function renderTokens() {
+    strip.innerHTML = "";
+    currentTokens = tokenize(input.value.trim() || "…");
+    currentTokens.forEach(function (tok, i) {
+      var s = document.createElement("span");
+      s.className = "tok c" + tok.c;
+      s.style.animationDelay = Math.min(i * 18, 400) + "ms";
+      s.textContent = tok.t;
+      s.title = "token id (illustrative): " + (hash(tok.t) % 128000);
+      strip.appendChild(s);
+    });
+    countEl.innerHTML = "<b>" + currentTokens.length + "</b> tokens · approx.";
+  }
+
+  var promptTimer = null;
+  function onPrompt() {
+    clearTimeout(promptTimer);
+    promptTimer = setTimeout(function () {
+      renderTokens();
+      restartSims();
+    }, 120);
+  }
+  input.addEventListener("input", onPrompt);
+
+  /* ---------------- shared lighthouse scene ---------------- */
+  function mulberry(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function drawScene(ctx, x, y, w, h, opts) {
+    opts = opts || {};
+    var r = mulberry(7);
+    // sky
+    var sky = ctx.createLinearGradient(x, y, x, y + h * 0.62);
+    sky.addColorStop(0, "#0B1526"); sky.addColorStop(1, "#1B2C49");
+    ctx.fillStyle = sky; ctx.fillRect(x, y, w, h * 0.62);
+    // stars
+    ctx.fillStyle = "rgba(222,230,242,0.8)";
+    for (var i = 0; i < 26; i++) {
+      var sx = x + r() * w, sy = y + r() * h * 0.5, s = r() * 1.4 + 0.4;
+      ctx.fillRect(sx, sy, s, s);
+    }
+    // moon
+    ctx.fillStyle = "#E7E1CF";
+    ctx.beginPath(); ctx.arc(x + w * 0.16, y + h * 0.2, h * 0.055, 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(231,225,207,0.15)";
+    ctx.beginPath(); ctx.arc(x + w * 0.16, y + h * 0.2, h * 0.11, 0, 7); ctx.fill();
+    // beam
+    var ang = opts.beamAngle !== undefined ? opts.beamAngle : -0.35;
+    var lx = x + w * 0.72, ly = y + h * 0.42;
+    ctx.save();
+    ctx.translate(lx, ly); ctx.rotate(ang);
+    var bg = ctx.createLinearGradient(0, 0, -w, 0);
+    bg.addColorStop(0, "rgba(255,240,200,0.5)"); bg.addColorStop(1, "rgba(255,240,200,0)");
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-w * 1.1, -h * 0.16); ctx.lineTo(-w * 1.1, h * 0.16); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    // sea
+    var sea = ctx.createLinearGradient(x, y + h * 0.6, x, y + h);
+    sea.addColorStop(0, "#123049"); sea.addColorStop(1, "#08131F");
+    ctx.fillStyle = sea; ctx.fillRect(x, y + h * 0.6, w, h * 0.4);
+    // waves
+    ctx.strokeStyle = "rgba(190,215,235,0.22)"; ctx.lineWidth = 1;
+    for (var wl = 0; wl < 5; wl++) {
+      var wly = y + h * (0.64 + wl * 0.07) + Math.sin((opts.wob || 0) + wl * 1.7) * 2;
+      ctx.beginPath();
+      for (var wx = 0; wx <= w; wx += 8) {
+        var wy = wly + Math.sin((wx / w) * 6 + wl * 2 + (opts.wob || 0)) * 1.6;
+        if (wx === 0) ctx.moveTo(x + wx, wy); else ctx.lineTo(x + wx, wy);
+      }
+      ctx.stroke();
+    }
+    // rock
+    ctx.fillStyle = "#1A1410";
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.6, y + h * 0.66);
+    ctx.lineTo(x + w * 0.68, y + h * 0.44);
+    ctx.lineTo(x + w * 0.82, y + h * 0.46);
+    ctx.lineTo(x + w * 0.88, y + h * 0.68);
+    ctx.closePath(); ctx.fill();
+    // tower
+    var tx = x + w * 0.7, tw = w * 0.075;
+    ctx.fillStyle = "#E8E4DA";
+    ctx.beginPath();
+    ctx.moveTo(tx - tw, y + h * 0.46); ctx.lineTo(tx - tw * 0.62, y + h * 0.2);
+    ctx.lineTo(tx + tw * 0.62, y + h * 0.2); ctx.lineTo(tx + tw, y + h * 0.46);
+    ctx.closePath(); ctx.fill();
+    // bands
+    ctx.fillStyle = "#B3402F";
+    ctx.beginPath();
+    ctx.moveTo(tx - tw * 0.9, y + h * 0.36); ctx.lineTo(tx - tw * 0.72, y + h * 0.31);
+    ctx.lineTo(tx + tw * 0.72, y + h * 0.31); ctx.lineTo(tx + tw * 0.9, y + h * 0.36);
+    ctx.closePath(); ctx.fill();
+    // lamp room + glow
+    ctx.fillStyle = "#2A2A2E";
+    ctx.fillRect(tx - tw * 0.7, y + h * 0.15, tw * 1.4, h * 0.05);
+    ctx.fillStyle = "#FFE9A8";
+    ctx.beginPath(); ctx.arc(lx, y + h * 0.175, Math.max(2, h * 0.02), 0, 7); ctx.fill();
+    ctx.fillStyle = "rgba(255,233,168,0.18)";
+    ctx.beginPath(); ctx.arc(lx, y + h * 0.175, h * 0.06, 0, 7); ctx.fill();
+    // rain (optional)
+    if (opts.rain) {
+      ctx.strokeStyle = "rgba(190,210,235,0.18)"; ctx.lineWidth = 1;
+      var rr = mulberry(99);
+      for (var d = 0; d < 60; d++) {
+        var rx = x + rr() * w, ry = y + ((rr() * h + (opts.wob || 0) * 40) % h);
+        ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 9); ctx.stroke();
+      }
+    }
+  }
+
+  var canvasSetups = new Map();
+  function setupCanvas(cv) {
+    var cached = canvasSetups.get(cv);
+    if (cached) return cached;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cssW = cv.clientWidth || 900;
+    var ratio = cv.getAttribute("height") / cv.getAttribute("width");
+    cv.width = Math.round(cssW * dpr);
+    cv.height = Math.round(cssW * ratio * dpr);
+    var ctx = cv.getContext("2d");
+    ctx.scale(dpr, dpr);
+    var s = { ctx: ctx, w: cssW, h: cssW * ratio };
+    canvasSetups.set(cv, s);
+    return s;
+  }
+
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------- image simulation ---------------- */
+  var imgCanvas = document.getElementById("imgcanvas");
+  var imgStatus = document.getElementById("img-status");
+  var imgRAF = null;
+  var IMG_STEPS = 24, IMG_MS = 5200;
+
+  // latent grid final colors: sample the finished scene
+  var latentFinal = null;
+  function computeLatent() {
+    var off = document.createElement("canvas");
+    off.width = 12; off.height = 12;
+    var octx = off.getContext("2d");
+    drawScene(octx, 0, 0, 12, 12, { beamAngle: -0.3, rain: true, wob: 0 });
+    latentFinal = octx.getImageData(0, 0, 12, 12).data;
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  function drawImgSim(p) {
+    var s = setupCanvas(imgCanvas), ctx = s.ctx, W = s.w, H = s.h;
+    var pl = pal();
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = pl.bg; ctx.fillRect(0, 0, W, H);
+    if (!latentFinal) computeLatent();
+
+    var gx = 24, gy = 30, gw = W * 0.4, gh = H - 90;
+    var cols = 12, rows = 12, cw = gw / cols, chh = gh / rows;
+    var ep = ease(p);
+    var noiseCol = isDark() ? [29, 35, 44] : [214, 215, 209];
+    for (var i = 0; i < cols * rows; i++) {
+      var cx = i % cols, cy = (i / cols) | 0;
+      var delay = (cy * 0.6 + cx * 0.35) / 14;
+      var cp = Math.max(0, Math.min(1, (p - delay) / 0.55));
+      var jx = latentFinal[(cy * 12 + cx) * 4],
+          jy = latentFinal[(cy * 12 + cx) * 4 + 1],
+          jz = latentFinal[(cy * 12 + cx) * 4 + 2];
+      var jit = cp < 1 ? (mulberry(i * 7 + 3)() - 0.5) * (1 - cp) * 130 : 0;
+      ctx.fillStyle = "rgb(" +
+        Math.round(lerp(noiseCol[0], jx, cp) + jit) + "," +
+        Math.round(lerp(noiseCol[1], jy, cp) + jit) + "," +
+        Math.round(lerp(noiseCol[2], jz, cp) + jit) + ")";
+      ctx.fillRect(gx + cx * cw + 1, gy + cy * chh + 1, cw - 2, chh - 1);
+    }
+    ctx.strokeStyle = pl.line; ctx.lineWidth = 1;
+    ctx.strokeRect(gx, gy, gw, gh);
+
+    // right: decoded pixels with pixelation resolving
+    var rx = gx + gw + 54, ry = gy, rw = W - rx - 24, rh = gh;
+    var scene = document.createElement("canvas");
+    var pixScale = lerp(0.05, 1, Math.min(1, p * 1.25));
+    scene.width = Math.max(3, Math.round(rw * pixScale));
+    scene.height = Math.max(2, Math.round(rh * pixScale));
+    drawScene(scene.getContext("2d"), 0, 0, scene.width, scene.height, { beamAngle: -0.3, rain: p > 0.7, wob: p * 8 });
+    ctx.save();
+    ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.clip();
+    ctx.imageSmoothingEnabled = p > 0.55;
+    ctx.drawImage(scene, rx, ry, rw, rh);
+    // residual noise overlay
+    if (p < 1) {
+      var nr = mulberry(Math.floor(p * 977));
+      ctx.fillStyle = "rgba(" + (isDark() ? "16,20,26," : "243,243,239,") + (1 - p) * 0.85 + ")";
+      for (var n = 0; n < 260 * (1 - p); n++) {
+        ctx.fillRect(rx + nr() * rw, ry + nr() * rh, 2 + nr() * 3, 2 + nr() * 3);
+      }
+    }
+    ctx.restore();
+    ctx.strokeStyle = pl.line; ctx.strokeRect(rx, ry, rw, rh);
+
+    // labels
+    ctx.font = "500 11px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = pl.soft;
+    ctx.fillText("LATENT GRID · 128×128 = 16,384 PATCHES", gx, gy - 10);
+    ctx.fillText("DECODED PIXELS · 1024×1024", rx, ry - 10);
+    var step = Math.round(p * IMG_STEPS);
+    if (p < 1) {
+      ctx.fillStyle = pl.accent;
+      ctx.fillText("DENOISE STEP " + step + "/" + IMG_STEPS, gx, gy + gh + 24);
+      // progress ticks
+      for (var t2 = 0; t2 < IMG_STEPS; t2++) {
+        ctx.fillStyle = t2 < step ? pl.accent : pl.line;
+        ctx.fillRect(gx + 230 + t2 * 9, gy + gh + 17, 5, 7);
+      }
+    } else {
+      ctx.fillStyle = pl.accent;
+      ctx.fillText("✓ CLEAN LATENTS → VAE DECODE", gx, gy + gh + 24);
+    }
+  }
+
+  var imgStart = 0;
+  function runImgSim() {
+    if (imgRAF) cancelAnimationFrame(imgRAF);
+    if (reduceMotion) { drawImgSim(1); imgStatus.textContent = "clean latents → VAE decode"; return; }
+    imgStart = performance.now();
+    imgStatus.textContent = "denoising…";
+    (function frame(now) {
+      var p = Math.min(1, (now - imgStart) / IMG_MS);
+      drawImgSim(p);
+      if (p < 1) { imgRAF = requestAnimationFrame(frame); }
+      else { imgRAF = null; imgStatus.textContent = "clean latents → VAE decode"; }
+    })(imgStart);
+  }
+
+  /* ---------------- video simulation ---------------- */
+  var vidCanvas = document.getElementById("vidcanvas");
+  var vidStatus = document.getElementById("vid-status");
+  var vidRAF = null;
+  var VID_FRAMES = 5;
+
+  function drawVidSim(time) {
+    var s = setupCanvas(vidCanvas), ctx = s.ctx, W = s.w, H = s.h;
+    var pl = pal();
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = pl.bg; ctx.fillRect(0, 0, W, H);
+    var n = VID_FRAMES, pw = (W - 24 * 2 - (n - 1) * 18) / n, ph = pw * 0.62;
+    var py = 56;
+    var active = Math.floor(time / 650) % n;
+    for (var i = 0; i < n; i++) {
+      var fx = 24 + i * (pw + 18);
+      var beamAngle = -0.62 + i * 0.15 + Math.sin(time / 900) * 0.05;
+      drawScene(ctx, fx, py, pw, ph, { beamAngle: beamAngle, rain: true, wob: i * 1.4 + time / 300 });
+      // frame border
+      ctx.strokeStyle = i === active ? pl.accent : pl.line;
+      ctx.lineWidth = i === active ? 2 : 1;
+      ctx.strokeRect(fx, py, pw, ph);
+      // patch grid on active frame
+      if (i === active) {
+        ctx.strokeStyle = "rgba(255,255,255,0.28)"; ctx.lineWidth = 1;
+        var cols = 8;
+        for (var c = 1; c < cols; c++) {
+          ctx.beginPath(); ctx.moveTo(fx + pw * c / cols, py); ctx.lineTo(fx + pw * c / cols, py + ph); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(fx, py + ph * c / cols); ctx.lineTo(fx + pw, py + ph * c / cols); ctx.stroke();
+        }
+        // highlight one patch
+        var pc = (Math.floor(time / 1300) % (cols * cols));
+        var pxc = pc % cols, pyc = (pc / cols) | 0;
+        ctx.strokeStyle = pl.accent; ctx.lineWidth = 2;
+        ctx.strokeRect(fx + pw * pxc / cols, py + ph * pyc / cols, pw / cols, ph / cols);
+        ctx.fillStyle = pl.accent;
+        ctx.font = "500 10px 'IBM Plex Mono', monospace";
+        ctx.fillText("1 spacetime patch = 3 frames × 8×8 px", fx, py + ph + 18);
+      }
+      ctx.fillStyle = pl.soft;
+      ctx.font = "500 10px 'IBM Plex Mono', monospace";
+      ctx.fillText("t=" + i, fx, py + ph + (i === active ? 32 : 16));
+    }
+    // axis labels
+    ctx.font = "500 11px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = pl.soft;
+    ctx.fillText("TIME →", 24, 32);
+    ctx.fillStyle = pl.accent;
+    ctx.fillText("TOY SCALE · REAL MODELS: HUNDREDS OF THOUSANDS OF PATCHES PER CLIP", 24 + 70, 32);
+    vidStatus.textContent = "t = " + active + " · frame " + (active + 1) + "/" + n;
+  }
+
+  function runVidSim() {
+    if (vidRAF) cancelAnimationFrame(vidRAF);
+    if (reduceMotion) {
+      drawVidSim(1200); vidStatus.textContent = "t = 1 · static preview"; return;
+    }
+    (function frame(now) {
+      drawVidSim(now);
+      vidRAF = requestAnimationFrame(frame);
+    })(performance.now());
+  }
+
+  /* ---------------- text simulation ---------------- */
+  var STEPS = [
+    { cands: [["the", 46], ["a", 22], ["it", 11], ["this", 7], ["every", 4]], pick: 0 },
+    { cands: [["model", 38], ["keeper", 19], ["machine", 12], ["network", 8], ["story", 5]], pick: 0 },
+    { cands: [["predicts", 41], ["chooses", 25], ["guesses", 12], ["emits", 9], ["rolls", 5]], pick: 0 },
+    { cands: [["one", 44], ["just", 18], ["exactly", 10], ["only", 8], ["a", 7]], pick: 0 },
+    { cands: [["token", 57], ["word", 17], ["patch", 9], ["pixel", 6], ["byte", 4]], pick: 0 },
+    { cands: [["at", 49], ["after", 14], ["per", 11], ["by", 9], ["in", 6]], pick: 0 },
+    { cands: [["a", 52], ["the", 21], ["this", 9], ["each", 7], ["every", 4]], pick: 0 },
+    { cands: [["time", 71], ["moment", 10], ["step", 8], ["turn", 5], ["pass", 3]], pick: 0 },
+    { cands: [[".", 62], ["…", 12], [";", 9], [",", 8], ["!", 4]], pick: 0 }
+  ];
+  var textStatus = document.getElementById("text-status");
+  var ctxLine = document.getElementById("ctxline");
+  var outLine = document.getElementById("outline-line");
+  var candsEl = document.getElementById("cands");
+  var textTimers = [];
+
+  function renderCtx() {
+    ctxLine.innerHTML = "";
+    var lbl = document.createElement("span");
+    lbl.className = "lbl"; lbl.textContent = "context";
+    ctxLine.appendChild(lbl);
+    currentTokens.slice(0, 18).forEach(function (tok) {
+      var s = document.createElement("span");
+      s.className = "tok c" + tok.c;
+      s.textContent = tok.t;
+      ctxLine.appendChild(s);
+    });
+    if (currentTokens.length > 18) {
+      var more = document.createElement("span");
+      more.className = "lbl"; more.textContent = "+" + (currentTokens.length - 18) + " more";
+      ctxLine.appendChild(more);
+    }
+  }
+
+  function clearTextTimers() { textTimers.forEach(clearTimeout); textTimers = []; }
+
+  function runTextSim() {
+    clearTextTimers();
+    outLine.innerHTML = "";
+    var lbl = document.createElement("span");
+    lbl.className = "lbl"; lbl.textContent = "generated";
+    outLine.appendChild(lbl);
+    renderCtx();
+    if (reduceMotion) {
+      STEPS.forEach(function (st) { addGenToken(st.cands[st.pick][0]); });
+      renderCands(STEPS[STEPS.length - 1], true);
+      textStatus.textContent = "done · 9 tokens · scripted trace";
+      return;
+    }
+    textStatus.textContent = "generating…";
+    var delay = 240;
+    STEPS.forEach(function (st, idx) {
+      textTimers.push(setTimeout(function () {
+        renderCands(st, false);
+        textTimers.push(setTimeout(function () {
+          addGenToken(st.cands[st.pick][0]);
+          var done = idx === STEPS.length - 1;
+          textStatus.textContent = done
+            ? "done · 9 tokens · scripted trace"
+            : "step " + (idx + 1) + "/" + STEPS.length;
+        }, 340));
+      }, delay));
+      delay += 620;
+    });
+  }
+
+  function addGenToken(text) {
+    var s = document.createElement("span");
+    s.className = "tok c" + (hash(text) % 5) + " gen";
+    s.textContent = text;
+    outLine.appendChild(s);
+  }
+
+  function renderCands(st, final) {
+    candsEl.innerHTML = "";
+    var max = st.cands[0][1];
+    st.cands.forEach(function (c, i) {
+      var row = document.createElement("div");
+      row.className = "cand" + (i === st.pick ? " win" : "");
+      var w = document.createElement("span"); w.className = "cw"; w.textContent = c[0] === undefined ? "" : JSON.stringify(c[0]).slice(1, -1) || "␣";
+      var bar = document.createElement("span"); bar.className = "bar";
+      var fill = document.createElement("i"); bar.appendChild(fill);
+      var pc = document.createElement("span"); pc.className = "pc"; pc.textContent = c[1] + "%";
+      row.appendChild(w); row.appendChild(bar); row.appendChild(pc);
+      candsEl.appendChild(row);
+      requestAnimationFrame(function () { fill.style.width = (c[1] / max * 100) + "%"; });
+    });
+  }
+
+  /* ---------------- orchestration ---------------- */
+  var started = { text: false, img: false, vid: false };
+  function restartSims() {
+    started.text = started.img = started.vid = false;
+    runTextSim(); runImgSim(); runVidSim();
+    started = { text: true, img: true, vid: true };
+  }
+
+  document.getElementById("text-replay").addEventListener("click", runTextSim);
+  document.getElementById("img-replay").addEventListener("click", runImgSim);
+  document.getElementById("vid-replay").addEventListener("click", runVidSim);
+
+  if ("IntersectionObserver" in window && !reduceMotion) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var id = e.target.id;
+        if (id === "text" && !started.text) { started.text = true; runTextSim(); }
+        if (id === "image" && !started.img) { started.img = true; runImgSim(); }
+        if (id === "video" && !started.vid) { started.vid = true; runVidSim(); }
+      });
+    }, { threshold: 0.25 });
+    ["text", "image", "video"].forEach(function (id) { io.observe(document.getElementById(id)); });
+  } else {
+    runTextSim(); runImgSim(); runVidSim();
+  }
+
+  renderTokens();
+  computeLatent();
+  if (reduceMotion) { drawImgSim(1); drawVidSim(1200); }
+
+  // re-render static visuals on theme change
+  function onThemeChange() {
+    computeLatent();
+    drawImgSim(1); drawVidSim(1200);
+  }
+  if (darkQuery.addEventListener) {
+    darkQuery.addEventListener("change", onThemeChange);
+  }
+  new MutationObserver(onThemeChange).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      canvasSetups.clear();
+      var p = imgRAF ? null : 1;
+      if (p === 1) { drawImgSim(1); drawVidSim(1200); }
+    }, 150);
+  });
+})();
+</script>
+</body>
+</html>
